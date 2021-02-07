@@ -23,8 +23,8 @@ public class MainActivity extends AppCompatActivity {
     private EditText emailId, password;
     private Button btnSignUp;
     private TextView tvSignIn;
-    FirebaseAuth mFirebaseAuth;
-    
+    private FirebaseAuth mFirebaseAuth;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -35,53 +35,48 @@ public class MainActivity extends AppCompatActivity {
         password = findViewById(R.id.editPassword);
         btnSignUp = findViewById(R.id.btnSignUp);
         tvSignIn = findViewById(R.id.tvSignIn);
-        btnSignUp.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String email = emailId.getText().toString();
-                String pwd = password.getText().toString();
-                if (email.isEmpty()){
-                    emailId.setText("Please enter Email");
-                    emailId.requestFocus();
-                }
-                else if (pwd.isEmpty()){
-                    password.setText("Please enter password");
-                    password.requestFocus();
-                }
-                else if (email.isEmpty() && pwd.isEmpty()){
-                    Toast.makeText(MainActivity.this, "Fields are Empty!", Toast.LENGTH_SHORT).show();
-                }
-                else if (!(email.isEmpty() && pwd.isEmpty()))
-                {
-                    mFirebaseAuth.createUserWithEmailAndPassword(email, pwd).addOnCompleteListener(MainActivity.this, new OnCompleteListener<AuthResult>() {
-                        @Override
-                        public void onComplete(@NonNull Task<AuthResult> task) {
-                            if (!task.isSuccessful()){
-                                Toast.makeText(MainActivity.this, "SignUp Unsuccessful\nPlease try again.", Toast.LENGTH_SHORT).show();
-                            }
-                            else{
-                                startActivity(new Intent(MainActivity.this, HomeActivity.class));
-                            }
-                        }
-                    });
-                }
-                else{
-                    Toast.makeText(MainActivity.this, "Error Occurred!", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
 
-        tvSignIn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent i = new Intent(MainActivity.this, LoginActivity.class);
-                startActivity(i);
-            }
-        });
     }
 
-    public void GoToSignIn()
-    {
+    public void SignUp(View view) {
+        String email = emailId.getText().toString();
+        String pwd = password.getText().toString();
+
+        if (email.isEmpty()){
+            emailId.setText("Please enter Email");
+            emailId.requestFocus();
+        }
+        else if (pwd.isEmpty()){
+            password.setText("Please enter password");
+            password.requestFocus();
+        }
+        else if (email.isEmpty() && pwd.isEmpty()){
+            Toast.makeText(MainActivity.this, "Fields are Empty!", Toast.LENGTH_SHORT).show();
+        }
+        else if (!(email.isEmpty() && pwd.isEmpty()))
+        {
+            mFirebaseAuth.createUserWithEmailAndPassword(email, pwd).addOnCompleteListener(MainActivity.this, new OnCompleteListener<AuthResult>() {
+                @Override
+                public void onComplete(@NonNull Task<AuthResult> task) {
+                    if (!task.isSuccessful()){
+                        Toast.makeText(MainActivity.this, "SignUp Unsuccessful\nPlease try again.", Toast.LENGTH_SHORT).show();
+                    }
+                    else{
+                        GoToHome();
+                    }
+                }
+            });
+        }
+        else{
+            Toast.makeText(MainActivity.this, "Error Occurred!", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    public void GoToSignIn(View view) {
         startActivity(new Intent(MainActivity.this, LoginActivity.class));
+    }
+
+    public void GoToHome() {
+        startActivity(new Intent(MainActivity.this, HomeActivity.class));
     }
 }
