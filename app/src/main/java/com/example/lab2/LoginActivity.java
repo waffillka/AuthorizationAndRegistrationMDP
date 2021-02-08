@@ -29,12 +29,7 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        mFirebaseAuth = FirebaseAuth.getInstance();
-        emailId = findViewById(R.id.editEmail);
-        password = findViewById(R.id.editPassword);
-        btnSignIn = findViewById(R.id.btnSignUp);
-        tvSignUp = findViewById(R.id.tvSignUp);
-
+        init();
         mAuthStateListener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
@@ -48,7 +43,14 @@ public class LoginActivity extends AppCompatActivity {
                 }
             }
         };
+    }
 
+    public void init(){
+        mFirebaseAuth = FirebaseAuth.getInstance();
+        emailId = findViewById(R.id.editEmail);
+        password = findViewById(R.id.editPassword);
+        btnSignIn = findViewById(R.id.btnSignUp);
+        tvSignUp = findViewById(R.id.tvSignUp);
     }
 
     public void SignIn(View view)
@@ -61,7 +63,7 @@ public class LoginActivity extends AppCompatActivity {
             emailId.requestFocus();
         }
         else if (pwd.isEmpty()){
-            password.setText("Please enter password");
+            password.setText("Please enter Password");
             password.requestFocus();
         }
         else if (email.isEmpty() && pwd.isEmpty()){
