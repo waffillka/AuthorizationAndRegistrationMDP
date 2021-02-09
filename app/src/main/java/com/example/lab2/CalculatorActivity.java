@@ -1,11 +1,19 @@
 package com.example.lab2;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.ProgressDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.storage.StorageReference;
 
 import java.util.ArrayList;
 
@@ -18,10 +26,29 @@ public class CalculatorActivity extends AppCompatActivity {
     private String formula = "";
     private String tempFormula = "";
 
+    private int CAMERA_REQUEST_CODE = 0;
+    private FirebaseAuth mFirebaseAuth;
+    private FirebaseAuth.AuthStateListener mAuthStateListener;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_calculator);
+
+        mAuthStateListener = new FirebaseAuth.AuthStateListener() {
+            @Override
+            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
+                if (mFirebaseAuth.getCurrentUser() == null)
+                {
+                    startActivity(new Intent(CalculatorActivity.this, LoginActivity.class));
+                    finish();
+                }
+            }
+        };
+    }
+
+    public void init() {
+        mFirebaseAuth = FirebaseAuth.getInstance();
     }
 
     private void SetTextResults(String str)
