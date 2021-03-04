@@ -1,245 +1,417 @@
 package com.example.lab2;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-
-import android.app.ProgressDialog;
-import android.content.Intent;
+import android.content.Context;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.view.View;
-import android.widget.ImageView;
+import android.view.WindowManager;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.storage.StorageReference;
-
-import java.util.ArrayList;
-
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
+import net.objecthunter.exp4j.Expression;
+import net.objecthunter.exp4j.ExpressionBuilder;
 
 public class CalculatorActivity extends AppCompatActivity {
-    private String workings = "";
-    private String formula = "";
-    private String tempFormula = "";
-
-    private int CAMERA_REQUEST_CODE = 0;
-    private FirebaseAuth mFirebaseAuth;
-    private FirebaseAuth.AuthStateListener mAuthStateListener;
+    private String workings;
+    private String memory;
+    private Boolean checkMemory;
+    private TextView resultsTV;
+    private TextView workingsTV;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_calculator);
+        setContentView(R.layout.activity_main);
 
-        mAuthStateListener = new FirebaseAuth.AuthStateListener() {
-            @Override
-            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                if (mFirebaseAuth.getCurrentUser() == null)
-                {
-                    startActivity(new Intent(CalculatorActivity.this, LoginActivity.class));
-                    finish();
-                }
-            }
-        };
+        workings = "";
+        memory = "";
+        checkMemory = true;
+        LinearLayout linearLayout = findViewById(R.id.ll);
+        int width = getScreenWidth(CalculatorActivity.this);
+
+        resultsTV = (TextView)findViewById(R.id.resultTextView);
+        workingsTV = (TextView)findViewById(R.id.workingsTextView);
+
+        int childCount = linearLayout.getChildCount();
+
+        for (int i = 0; i < childCount; i++) {
+            TextView button = (TextView) linearLayout.getChildAt(i);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(width / 4, -1, LinearLayout.LayoutParams.WRAP_CONTENT);
+            button.setLayoutParams(params);
+        }
     }
 
-    public void init() {
-        mFirebaseAuth = FirebaseAuth.getInstance();
+    public static int getScreenWidth(Context context) {
+        WindowManager windowManager = (WindowManager) context
+                .getSystemService(Context.WINDOW_SERVICE);
+        DisplayMetrics dm = new DisplayMetrics();
+        windowManager.getDefaultDisplay().getMetrics(dm);
+        return dm.widthPixels;
     }
 
-    private void SetTextResults(String str)
-    {
-        TextView resultsTV = (TextView)findViewById(R.id.resultTextView);
+    private void SetTextResults(String str) {
         resultsTV.setText(str);
     }
-    private void SetTextWorkings(String str)
-    {
-        TextView workingsTV = (TextView)findViewById(R.id.workingsTextView);
+    private void SetTextWorkings(String str) {
         workingsTV.setText(str);
     }
-    private void setWorkings(String givenValue)
-    {
+
+    private String GetTextResults() {
+        return resultsTV.getText().toString();
+    }
+
+    private void setWorkings(String givenValue) {
         workings += givenValue;
         SetTextWorkings(workings);
     }
 
+    public void equalsOnClick(View view) {
+        if (!workings.isEmpty()) {
+            if(workings.charAt(workings.length() - 1) != '(' && workings.charAt(workings.length() - 1) != '-') {
+                int count = 0;
+                for (int i = 0; i < workings.length(); i++) {
+                    if (workings.charAt(i) == '(') {
+                        count++;
+                    } else if (workings.charAt(i) == ')') {
+                        count--;
+                    }
+                }
 
-    public void equalsOnClick(View view)
-    {
-        Double result = null;
-        ScriptEngine engine = new ScriptEngineManager().getEngineByName("rhino");
-        checkForPowerOf();
+                for (int i = 0; i < count; i++) {
+                    setWorkings(")");
+                }
+            }
 
-        try {
-            result = (double)engine.eval(formula);
-        } catch (ScriptException e)
-        {
-            Toast.makeText(this, "Invalid Input", Toast.LENGTH_SHORT).show();
+
+            Double result;
+            try {
+                Expression expression = new ExpressionBuilder(workings).build();
+                result = expression.evaluate();
+                SetTextResults(result.toString());
+                //checkMemory = true;
+            } catch (Exception ex) {
+                String exception = ex.toString();
+                exception = exception.substring(exception.indexOf(":") + 1);
+                Toast.makeText(CalculatorActivity.this, exception, Toast.LENGTH_LONG).show();
+            }
         }
-
-        if(result != null)
-            SetTextResults(String.valueOf(result.doubleValue()));
-
     }
 
-    private void checkForPowerOf()
-    {
-        ArrayList<Integer> indexOfPowers = new ArrayList<>();
-        for(int i = 0; i < workings.length(); i++)
-        {
-            if (workings.charAt(i) == '^')
-                indexOfPowers.add(i);
+    private void ContinueCalculations() {
+        if (!GetTextResults().equals("")) {
+            workings = GetTextResults().trim();
+            SetTextWorkings(workings);
+            SetTextResults("");
         }
-
-        formula = workings;
-        tempFormula = workings;
-        for(Integer index: indexOfPowers)
-        {
-            changeFormula(index);
-        }
-        formula = tempFormula;
     }
 
-    private void changeFormula(Integer index)
-    {
-        String numberLeft = "";
-        String numberRight = "";
-
-        for(int i = index + 1; i< workings.length(); i++)
-        {
-            if(isNumeric(workings.charAt(i)))
-                numberRight += workings.charAt(i);
-            else
-                break;
+    private void ContinueCalculationsNumber() {
+        if (!GetTextResults().equals("")) {
+            workings = "";
+            SetTextWorkings(workings);
+            SetTextResults("");
         }
-
-        for(int i = index - 1; i >= 0; i--)
-        {
-            if(isNumeric(workings.charAt(i)))
-                numberLeft += workings.charAt(i);
-            else
-                break;
-        }
-
-        String original = numberLeft + "^" + numberRight;
-        String changed = "Math.pow("+numberLeft+","+numberRight+")";
-        tempFormula = tempFormula.replace(original,changed);
     }
 
-    private boolean isNumeric(char c)
-    {
-        if((c <= '9' && c >= '0') || c == '.')
-            return true;
-
-        return false;
+    private boolean isNumeric(char c) {
+        return (c <= '9' && c >= '0');
     }
 
-
-    public void clearOnClick(View view)
-    {
+    public void clearOnClick(View view) {
         workings = "";
         SetTextWorkings(workings);
         SetTextResults("");
-        leftBracket = true;
     }
 
-    boolean leftBracket = true;
+    public void bracketsOnClick(View view) {
+        ContinueCalculations();
+        int count = 0;
+        for(int i = 0; i < workings.length(); i++) {
+            if (workings.charAt(i) == '(') {
+                count++;
+            } else if (workings.charAt(i) == ')') {
+                count--;
+            }
+        }
 
-    public void bracketsOnClick(View view)
-    {
-        if(leftBracket)
-        {
+        if(workings.isEmpty()) {
             setWorkings("(");
-            leftBracket = false;
+        } else if (!isNumeric(workings.charAt(workings.length() - 1)) && count == 0) {
+            if (workings.charAt(workings.length() - 1) == ')') {
+                setWorkings("*(");
+            } else {
+                setWorkings("(");
+            }
+        } else if (isNumeric(workings.charAt(workings.length() - 1)) && count == 0) {
+            setWorkings("*(");
+        } else if (workings.charAt(workings.length() - 1) == '(') {
+            setWorkings("(");
+        } else if (count != 0) {
+            if (workings.charAt(workings.length() - 1) != ')' && !isNumeric(workings.charAt(workings.length() - 1))) {
+                setWorkings("(");
+            } else {
+                setWorkings(")");
+            }
         }
-        else
-        {
-            setWorkings(")");
-            leftBracket = true;
+    }
+
+    public void powerOfOnClick(View view) {
+        ContinueCalculations();
+        if(!workings.isEmpty()) {
+            if (workings.charAt(workings.length() - 1) == '^' || workings.charAt(workings.length() - 1) == '(') {
+                return;
+            } else if (workings.charAt(workings.length() - 1) == '-' || workings.charAt(workings.length() - 1) == '+'
+                    || workings.charAt(workings.length() - 1) == '*' || workings.charAt(workings.length() - 1) == '/') {
+                workings = workings.substring(0, workings.length() - 1);
+            }
+
+            setWorkings("^");
+        }
+
+    }
+
+    public void divisionOnClick(View view) {
+        ContinueCalculations();
+        if(!workings.isEmpty()) {
+            if (workings.charAt(workings.length() - 1) == '/' || workings.charAt(workings.length() - 1) == '(') {
+                return;
+            } else if (workings.charAt(workings.length() - 1) == '-' || workings.charAt(workings.length() - 1) == '+'
+                    || workings.charAt(workings.length() - 1) == '^' || workings.charAt(workings.length() - 1) == '*') {
+                workings = workings.substring(0, workings.length() - 1);
+            }
+
+            setWorkings("/");
+        }
+
+    }
+
+    private void CheckNumbers() {
+        if(!workings.isEmpty()) {
+            if (workings.charAt(workings.length() - 1) == ')') {
+                setWorkings("*");
+            }
         }
     }
 
-    public void powerOfOnClick(View view)
-    {
-        setWorkings("^");
-    }
-
-    public void divisionOnClick(View view)
-    {
-        setWorkings("/");
-    }
-
-    public void sevenOnClick(View view)
-    {
+    public void sevenOnClick(View view) {
+        ContinueCalculationsNumber();
+        CheckNumbers();
         setWorkings("7");
     }
 
-    public void eightOnClick(View view)
-    {
+    public void eightOnClick(View view) {
+        ContinueCalculationsNumber();
+        CheckNumbers();
         setWorkings("8");
     }
 
-    public void nineOnClick(View view)
-    {
+    public void nineOnClick(View view) {
+        ContinueCalculationsNumber();
+        CheckNumbers();
         setWorkings("9");
     }
 
-    public void timesOnClick(View view)
-    {
-        setWorkings("*");
+    public void timesOnClick(View view) {
+        ContinueCalculations();
+        if(!workings.isEmpty()) {
+            if (workings.charAt(workings.length() - 1) == '*' || workings.charAt(workings.length() - 1) == '(') {
+                return;
+            } else if (workings.charAt(workings.length() - 1) == '-' || workings.charAt(workings.length() - 1) == '+'
+                    || workings.charAt(workings.length() - 1) == '^' || workings.charAt(workings.length() - 1) == '/') {
+                workings = workings.substring(0, workings.length() - 1);
+            }
+
+            setWorkings("*");
+        }
+
     }
 
-    public void fourOnClick(View view)
-    {
+    public void DelOneCharOnClick(View view) {
+        if (!workings.isEmpty()) {
+            workings = workings.substring(0, workings.length() - 1);
+            SetTextWorkings(workings);
+            if (!GetTextResults().equals("")) {
+                SetTextResults("");
+            }
+        }
+    }
+
+    public void fourOnClick(View view) {
+        ContinueCalculationsNumber();
+        CheckNumbers();
         setWorkings("4");
     }
 
-    public void fiveOnClick(View view)
-    {
+    public void fiveOnClick(View view) {
+        ContinueCalculationsNumber();
+        CheckNumbers();
         setWorkings("5");
     }
 
-    public void sixOnClick(View view)
-    {
+    public void sixOnClick(View view) {
+        ContinueCalculationsNumber();
+        CheckNumbers();
         setWorkings("6");
     }
 
-    public void minusOnClick(View view)
-    {
+    public void minusOnClick(View view) {
+        ContinueCalculations();
+        if(!workings.isEmpty()) {
+
+            if (workings.charAt(workings.length() - 1) == '-') {
+                return;
+            } else if (workings.charAt(workings.length() - 1) == '*' || workings.charAt(workings.length() - 1) == '+'
+                    || workings.charAt(workings.length() - 1) == '^' || workings.charAt(workings.length() - 1) == '/') {
+                workings = workings.substring(0, workings.length() - 1);
+            }
+        }
+
         setWorkings("-");
     }
 
-    public void oneOnClick(View view)
-    {
+    public void oneOnClick(View view) {
+        ContinueCalculationsNumber();
+        CheckNumbers();
         setWorkings("1");
     }
 
-    public void twoOnClick(View view)
-    {
+    public void twoOnClick(View view) {
+        ContinueCalculationsNumber();
+        CheckNumbers();
         setWorkings("2");
     }
 
-    public void threeOnClick(View view)
-    {
+    public void threeOnClick(View view) {
+        ContinueCalculationsNumber();
+        CheckNumbers();
         setWorkings("3");
     }
 
-    public void plusOnClick(View view)
-    {
-        setWorkings("+");
+    public void plusOnClick(View view) {
+        ContinueCalculations();
+        if(!workings.isEmpty()) {
+            if (workings.charAt(workings.length() - 1) == '+' || workings.charAt(workings.length() - 1) == '(') {
+                return;
+            } else if (workings.charAt(workings.length() - 1) == '-' || workings.charAt(workings.length() - 1) == '/'
+                    || workings.charAt(workings.length() - 1) == '^' || workings.charAt(workings.length() - 1) == '*') {
+                workings = workings.substring(0, workings.length() - 1);
+            }
+
+            setWorkings("+");
+        }
     }
 
-    public void decimalOnClick(View view)
-    {
-        setWorkings(".");
+    public void decimalOnClick(View view) {
+        ContinueCalculationsNumber();
+        CheckNumbers();
+        if(workings.isEmpty()) {
+            setWorkings("0.");
+        } /*else if(!isNumeric(workings.charAt(workings.length() - 1))) {
+            setWorkings("0.");
+        }*/
+        else {
+            for(int i = workings.length() - 1; i >= 0; --i) {
+                if(workings.charAt(i) == '.') {
+                    return;
+                } else if (!isNumeric(workings.charAt(i))) {
+                    break;
+                }
+            }
+            setWorkings(".");
+        }
     }
 
-    public void zeroOnClick(View view)
-    {
-        setWorkings("0");
+    public void zeroOnClick(View view) {
+        ContinueCalculationsNumber();
+        CheckNumbers();
+        if(workings.isEmpty()) {
+            setWorkings("0.");
+        } /*else if(!isNumeric(workings.charAt(workings.length() - 1))) {
+            setWorkings("0.");
+        } */
+        else {
+            setWorkings("0");
+        }
+    }
+
+    public void cosOnClick(View view) {
+        ContinueCalculationsNumber();
+        CheckNumbers();
+        if(!workings.isEmpty()) {
+            if (isNumeric(workings.charAt(workings.length() - 1))) {
+                setWorkings("*");
+            }
+        }
+        setWorkings("cos(");
+    }
+
+    public void sinOnClick(View view) {
+        ContinueCalculationsNumber();
+        CheckNumbers();
+        if(!workings.isEmpty()) {
+            if (isNumeric(workings.charAt(workings.length() - 1))) {
+                setWorkings("*");
+            }
+        }
+        setWorkings("sin(");
+    }
+
+    public void mrOnClick(View view) {
+        if (!memory.isEmpty()) {
+            workings = memory;
+            SetTextResults("");
+            SetTextWorkings(workings);
+
+        }
+        else {
+            SetTextResults("");
+            SetTextWorkings("0");
+        }
+    }
+
+    public void mPlusOnClick(View view) {
+        String rsl = GetTextResults();
+        if (!rsl.isEmpty() && checkMemory) {
+            if (!memory.isEmpty()) {
+                Double result;
+                Expression expression = new ExpressionBuilder(memory + "+" + rsl).build();
+                result = expression.evaluate();
+                memory = result.toString();
+            }
+            else {
+                memory = rsl;
+            }
+
+            checkMemory = false;
+        }
+    }
+
+    public void mMinesOnClick(View view) {
+        String rsl = GetTextResults();
+        if (!rsl.isEmpty() && checkMemory) {
+            if (!memory.isEmpty()) {
+                Double result;
+                Expression expression = new ExpressionBuilder(memory + "-" + rsl).build();
+                result = expression.evaluate();
+                memory = result.toString();
+            }
+            else {
+                memory = "-" + rsl;
+            }
+
+            checkMemory = false;
+        }
+    }
+
+    public void McleanOnClick(View view) {
+        memory = "0";
+    }
+
+    public void MSaveOnClick(View view) {
+        String rsl = GetTextResults();
+        if (!rsl.isEmpty()) {
+            memory = rsl;
+        }
     }
 }

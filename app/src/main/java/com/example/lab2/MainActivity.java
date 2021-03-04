@@ -6,23 +6,23 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.ParcelUuid;
-import android.util.Log;
+
 import android.view.View;
-import android.webkit.WebView;
+
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.lab2.Model.User;
-import com.google.android.gms.tasks.OnCanceledListener;
+
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.DatabaseRegistrar;
+
 import com.google.firebase.database.FirebaseDatabase;
 
 public class MainActivity extends AppCompatActivity {
@@ -30,14 +30,13 @@ public class MainActivity extends AppCompatActivity {
     private Button btnSignUp;
     private TextView tvSignIn;
     private FirebaseAuth mFirebaseAuth;
-    private FirebaseAuth.AuthStateListener mFirebaseAuthListener;
+
     private DatabaseReference mDataBase;
     private ProgressDialog mProgress;
 
     @Override
     protected void onStart() {
         super.onStart();
-        mFirebaseAuth.addAuthStateListener(mFirebaseAuthListener);
     }
 
     @Override
@@ -46,19 +45,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         init();
-
-        mFirebaseAuthListener = new FirebaseAuth.AuthStateListener() {
-            @Override
-            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                if (mFirebaseAuth.getCurrentUser() != null)
-                {
-                    startActivity(new Intent(MainActivity.this, HomeActivity.class));
-                    finish();
-                }
-            }
-
-
-        };
     }
 
     public void init(){
@@ -90,11 +76,11 @@ public class MainActivity extends AppCompatActivity {
             password.requestFocus();
         }
         else if (firstN.isEmpty()){
-            Toast.makeText(MainActivity.this, "Please enter firstname", Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this, "Please enter first name", Toast.LENGTH_SHORT).show();
             password.requestFocus();
         }
         else if (lastN.isEmpty()){
-            Toast.makeText(MainActivity.this, "Please enter lastname", Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this, "Please enter last name", Toast.LENGTH_SHORT).show();
             password.requestFocus();
         }
         else if (nPhone.isEmpty()){
@@ -113,11 +99,10 @@ public class MainActivity extends AppCompatActivity {
                 public void onComplete(@NonNull Task<AuthResult> task) {
                     if (!task.isSuccessful()){
                         Toast.makeText(MainActivity.this, "SignUp Unsuccessful\nPlease try again.", Toast.LENGTH_SHORT).show();
-                        mProgress.cancel();
+                        mProgress.dismiss();
                     }
                     else{
-                        mDataBase.child("USERS");
-                        DatabaseReference currentUserDB = mDataBase.child(mFirebaseAuth.getCurrentUser().getUid());
+                        DatabaseReference currentUserDB = mDataBase.child("USERS").child(mFirebaseAuth.getCurrentUser().getUid());
                         User user = new User(email, nPhone, firstN, lastN);
 
                         currentUserDB.setValue(user);
@@ -128,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
                         currentUserDB.child("PhoneNumber").setValue(numberPhone);
                         currentUserDB.child("image").setValue("default");*/
                         startActivity(new Intent(MainActivity.this, LoginActivity.class));
-                        mProgress.cancel();
+                        mProgress.dismiss();
                     }
                 }
             });
@@ -142,4 +127,65 @@ public class MainActivity extends AppCompatActivity {
         startActivity(new Intent(MainActivity.this, LoginActivity.class));
     }
 
+    private Boolean passwordValidation(String str) //A-Z, a-z, 0-9, min count = 6
+    {
+        Boolean w = true;
+        Boolean temp = false;
+        str = str.trim();
+        if (str.length() < 6) {
+            Toast.makeText(MainActivity.this, "The password must consist of A-Z, a-z, 0-9, minimum length 6!", Toast.LENGTH_SHORT).show();
+            w = false;
+        }
+
+        if (w) {
+            for(int i = 0; i < str.length(); i++) {
+                if (str.charAt(i) >= 'A' && str.charAt(i) <= 'Z')
+                {
+                    temp = true;
+                }
+            }
+
+            if(!temp) {
+                Toast.makeText(MainActivity.this, "The password must consist of A-Z, a-z, 0-9, minimum length 6!", Toast.LENGTH_SHORT).show();
+                w = false;
+            }
+        }
+
+        if (w) {
+            temp = false;
+            for(int i = 0; i < str.length(); i++) {
+                if (str.charAt(i) >= 'a' && str.charAt(i) <= 'z')
+                {
+                    temp = true;
+                }
+            }
+
+            if(!temp) {
+                Toast.makeText(MainActivity.this, "The password must consist of A-Z, a-z, 0-9, minimum length 6!", Toast.LENGTH_SHORT).show();
+                w = false;
+            }
+        }
+
+        if (w) {
+            temp = false;
+            for(int i = 0; i < str.length(); i++) {
+                if (str.charAt(i) >= '0' && str.charAt(i) <= '9')
+                {
+                    temp = true;
+                }
+            }
+
+            if(!temp) {
+                Toast.makeText(MainActivity.this, "The password must consist of A-Z, a-z, 0-9, minimum length 6!", Toast.LENGTH_SHORT).show();
+                w = false;
+            }
+        }
+        return w;
+    }
+
+    private Boolean mailValidation (String str) //
+    {
+        Boolean w = true;
+        return false;
+    }
 }

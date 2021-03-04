@@ -20,7 +20,7 @@ public class HistoryActivity extends AppCompatActivity {
         mAuthStateListener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                if (mFirebaseAuth.getCurrentUser() == null)
+                if (firebaseAuth.getCurrentUser() == null)
                 {
                     startActivity(new Intent(HistoryActivity.this, LoginActivity.class));
                     finish();
